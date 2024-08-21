@@ -13,20 +13,62 @@ storagespecs=[]
 
 
 
-def extract_specs(input_string):
+def extract_specsflipkart(input_string):
     if isinstance(input_string, (list, set)):
         input_string = ' '.join(str(element) for element in input_string)
     
-    ram_pattern = r'(\d+GB RAM)'
-    storage_pattern = r'(\d+GB Storage)'
+    ram_pattern = r'(\d+) GB RAM'
+    storage_pattern = r'(\d+) GB ROM'
 
     ram_match = re.search(ram_pattern, input_string)
     storage_match = re.search(storage_pattern, input_string)
 
-    ram = ram_match.group(1) if ram_match else None
-    storage = storage_match.group(1) if storage_match else None
+    ram = ram_match.group(1) if ram_match else '8'
+    storage = storage_match.group(1) if storage_match else '64'
 
     return ram, storage
+
+
+def extract_reviews(input_string):
+    if isinstance(input_string, (list, set)):
+        input_string = ' '.join(str(element) for element in input_string)
+    
+    rating_pattern = r'(\d+) out of 5 stars'
+
+    rating_match = re.search(rating_pattern, input_string)
+
+    ram = rating_match.group(1) if rating_match else '8'
+
+    return ram
+
+def extract_specs(input_string):
+    if isinstance(input_string, (list, set)):
+        input_string = ' '.join(str(element) for element in input_string)
+    
+    ram_pattern = r'(\d+)GB RAM'
+    storage_pattern = r'(\d+)GB Storage'
+
+    ram_match = re.search(ram_pattern, input_string)
+    storage_match = re.search(storage_pattern, input_string)
+
+    ram = ram_match.group(1) if ram_match else '8'
+    storage = storage_match.group(1) if storage_match else '64'
+
+    return ram, storage
+
+def extract_pricesflipkart(input_string):
+    if isinstance(input_string, (list, set)):
+        input_string = ' '.join(str(element) for element in input_string)
+    
+    price_pattern = r'â‚¹\s*([\d,]+)'  
+    price_match = re.search(price_pattern, input_string)
+
+    price = price_match.group(1).replace(',', '') if price_match else '8000'
+
+    return price
+
+
+
 
 
 for i in range(2, 600):
@@ -41,7 +83,8 @@ for i in range(2, 600):
 
      for i in amazreviews:
          amazreviews1= i.text
-         reviews.append(amazreviews1)
+         extractedreviews= extract_reviews(amazreviews1)
+         reviews.append(extractedreviews)
 
 
      for i in amazsprice1:
@@ -58,8 +101,8 @@ for i in range(2, 600):
 print(len(reviews))
 print(len(prices))
 print(len(product_name))
-
         
+
 for i in range(2,45):
     url = "https://www.flipkart.com/search?q=mobile&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off&page="+str(i)
     r = requests.get(url)
@@ -73,7 +116,7 @@ for i in range(2,45):
     names= soup.find_all("div",class_="KzDlHZ")
     price1=soup.find_all("div",class_='Nx9bqj _4b5DiR')
     specs1ram=soup.find_all("div",class_="_6NESgJ")
-    specs1=soup.find_all("div",class_="J+igdf")
+    specs1=soup.find_all("li",class_="J+igdf")
     review= soup.find_all("div",class_="XQDdHH")
 
     for i in review:
@@ -82,14 +125,17 @@ for i in range(2,45):
 
     for i in specs1:
          spec= i.text
-         specsforram,specsforstorage =extract_specs(spec)
+         specsforram,specsforstorage =extract_specsflipkart(spec)
+         print(specsforram)
+         print(specsforstorage)
          specs1ram.append(specsforram)
          storagespecs.append(specsforstorage)
 
         
     for i in price1:
          price= i.text
-         prices.append(price)
+         extractedflipkartprices= extract_pricesflipkart(price)
+         prices.append(extractedflipkartprices)
 
 
     for i in names:
@@ -100,14 +146,16 @@ for i in range(2,45):
 print("product names are: ",len(product_name))
 print("prices are: ",len(prices))
 print("reviews are: ",len(reviews))
-print('ram specs length :', ramspecs)
-print('ram specs length :', storagespecs)
+print('ram specs length :', len(ramspecs))
+print('Storage specs length :', len(storagespecs))
 
-print("storage specs are :", storagespecs)
-print("ram specs are: " ,ramspecs)
-print("product names are: ",product_name)
-print("prices are: ",prices)
-print("reviews are: ",reviews)
+max_length = max(len(product_name), len(prices), len(reviews), len(ramspecs), len(storagespecs))
+
+product_name.extend([None] * (max_length - len(product_name)))
+prices.extend([None] * (max_length - len(prices)))
+reviews.extend([None] * (max_length - len(reviews)))
+ramspecs.extend([None] * (max_length - len(ramspecs)))
+storagespecs.extend([None] * (max_length - len(storagespecs)))
 
 
 df= pd.DataFrame({"Mobile Name": product_name,"Prices":prices, "Reviews": reviews, "RAM Specifications": ramspecs, "Storage Specifications": storagespecs})
