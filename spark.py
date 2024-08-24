@@ -23,5 +23,5 @@ df0_10000 = df.filter((col("Prices") < 10000))
 df0_10000.dropDuplicates(["Mobile Name", "Prices", "Reviews", "RAM Specifications", "Storage Specifications"])
 df0_10000.count()
 
-df20000_40000 = df.filter((col("Prices") >= 10000) & (col("Prices") < 20000))
-df20000_40000.count()
+df10000_20000 = df.filter((col("Prices") >= 10000) & (col("Prices") < 20000))
+df10000_20000.count()
