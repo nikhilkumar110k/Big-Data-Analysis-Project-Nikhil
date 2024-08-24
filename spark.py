@@ -19,8 +19,9 @@ df.show(1300)
 
 
 
-df0_10000 = df.withColumn("Prices", when(col("Prices") <= 10000, col("Prices")).otherwise(lit(None).cast(df.schema["Prices"].dataType)))
-df0_10000= df.na.drop(subset=['Prices'])
+df0_10000 = df.filter((col("Prices") < 10000))
 df0_10000.dropDuplicates(["Mobile Name", "Prices", "Reviews", "RAM Specifications", "Storage Specifications"])
 df0_10000.count()
 
+df20000_40000 = df.filter((col("Prices") >= 10000) & (col("Prices") < 20000))
+df20000_40000.count()
