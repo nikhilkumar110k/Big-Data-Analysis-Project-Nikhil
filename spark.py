@@ -28,3 +28,6 @@ df0_10000.count()
 df10000_40000 = df.filter((col("Prices") >= 10000) & (col("Prices") < 40000))
 df10000_40000.dropDuplicates(["Mobile Name", "Prices", "Reviews", "RAM Specifications", "Storage Specifications"])
 df10000_40000.count()
+
+
+train_datafrom0_10000, test_datafrom0_10000= df0_10000.randomSplit([0.7,0.3])
