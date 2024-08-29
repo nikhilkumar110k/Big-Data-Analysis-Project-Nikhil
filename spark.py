@@ -8,6 +8,9 @@ from pyspark.ml.linalg import Vectors
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.evaluation import RegressionEvaluator
 
+
+spark= SparkSession.builder.appName("BDA Project").getOrCreate()
+
 df= spark.read.csv("/content/Scrapped_Data_for_allinfo.csv", inferSchema=True, header=True)
 
 df=df.withColumn("Prices",(regexp_replace(col("Prices"), ",", "").cast(DoubleType())))
