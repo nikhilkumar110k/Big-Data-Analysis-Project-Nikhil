@@ -1,4 +1,4 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Row
 from pyspark.sql.functions import when, col, lit
 from pyspark.ml.feature import  VectorAssembler
 from pyspark.sql.types import DoubleType
@@ -62,9 +62,21 @@ r2 = evaluator_r2.evaluate(predictions)
 print(f"Root Mean Squared Error (RMSE) on test data = {rmse}")
 print(f"R^2 on test data = {r2}")
 
+prices_int= float(input("enter price"))
+ram_int= float(input("enter RAM"))
+storage_int= float(input("enter storage"))
 
+user_input= {'Prices': prices_int, 'RAM Specifications':ram_int,'Storage Specifications':storage_int}
+user_input= Row(**user_input)
+user_input= spark.createDataFrame([user_input])
+user_input.printSchema()
 
+assembler1= VectorAssembler(inputCols=['Prices','RAM Specifications','Storage Specifications'], outputCol='features', handleInvalid='skip')
+vectors_input_byuser = assembler1.transform(user_input)
 
+rfr_predictions0_10000= rfr_model.transform(vectors_input_byuser)
+
+print(assembler1.getInputCols())
 
 
 
