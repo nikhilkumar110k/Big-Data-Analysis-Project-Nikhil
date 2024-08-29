@@ -31,3 +31,6 @@ df10000_40000.count()
 
 
 train_datafrom0_10000, test_datafrom0_10000= df0_10000.randomSplit([0.7,0.3])
+
+train_datafrom0_10000.describe().show()
+test_datafrom0_10000.describe().show()
