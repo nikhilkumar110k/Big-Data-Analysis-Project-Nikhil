@@ -3,9 +3,10 @@ from pyspark.sql.functions import when, col, lit
 from pyspark.ml.feature import  VectorAssembler
 from pyspark.sql.types import DoubleType
 from pyspark.sql.functions import regexp_replace
-from pyspark.ml.regression import LinearRegression
+from pyspark.ml.regression import RandomForestRegressor
 from pyspark.ml.linalg import Vectors
 from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.evaluation import RegressionEvaluator
 
 df= spark.read.csv("/content/Scrapped_Data_for_allinfo.csv", inferSchema=True, header=True)
 
@@ -32,6 +33,7 @@ df10000_40000.dropDuplicates(["Mobile Name", "Prices", "Reviews", "RAM Specifica
 df10000_40000.count()
 
 
+
 train_datafrom0_10000, test_datafrom0_10000= df0_10000.randomSplit([0.7,0.3])
 
 train_datafrom0_10000.describe().show()
@@ -41,20 +43,24 @@ test_datafrom0_10000.describe().show()
 
 
 assembler= VectorAssembler(inputCols=['Prices','Reviews','RAM Specifications','Storage Specifications'], outputCol='features', handleInvalid='skip')
-output= assembler.transform(df)
-fnl_data=output.select('features','Reviews')
-fnl_data.show()
-train_fnl_data, test_fnl_data= fnl_data.randomSplit([0.7,0.3])
-fnl_data.na.drop()
-fnl_data.count()
-lr= LinearRegression(labelCol='Reviews')
+output0_10000= assembler.transform(df0_10000)
+fnl_data0_10000=output0_10000.select('features','Reviews')
+fnl_data0_10000.show()
+train_fnl_data, test_fnl_data= fnl_data0_10000.randomSplit([0.7,0.3])
+fnl_data0_10000.na.drop()
+fnl_data0_10000.count()
+rfr= RandomForestRegressor(featuresCol='features',labelCol='Reviews')
 
-lr_model=lr.fit(train_fnl_data)
-result_accuracy= lr_model.evaluate(test_fnl_data)
-result_accuracy.rootMeanSquaredError
-result_accuracy.r2
-fnl_data.describe().show()
+rfr_model=rfr.fit(train_fnl_data)
+predictions= rfr_model.transform(test_fnl_data)
+predictions.select("prediction", "Reviews", "features").show(20)
+evaluator_rmse = RegressionEvaluator(labelCol="Reviews", predictionCol="prediction", metricName="rmse")
+evaluator_r2 = RegressionEvaluator(labelCol="Reviews", predictionCol="prediction", metricName="r2")
+rmse = evaluator_rmse.evaluate(predictions)
+r2 = evaluator_r2.evaluate(predictions)
 
+print(f"Root Mean Squared Error (RMSE) on test data = {rmse}")
+print(f"R^2 on test data = {r2}")
 
 
 
