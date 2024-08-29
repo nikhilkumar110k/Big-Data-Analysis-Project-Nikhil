@@ -11,7 +11,7 @@ from pyspark.ml.evaluation import RegressionEvaluator
 
 spark= SparkSession.builder.appName("BDA Project").getOrCreate()
 
-df= spark.read.csv("/content/Scrapped_Data_for_allinfo.csv", inferSchema=True, header=True)
+df= spark.read.csv("Scrapped_Data_for_allinfo.csv", inferSchema=True, header=True)
 
 df=df.withColumn("Prices",(regexp_replace(col("Prices"), ",", "").cast(DoubleType())))
 df.dropDuplicates(["Mobile Name", "Prices", "Reviews", "RAM Specifications", "Storage Specifications"])
