@@ -37,6 +37,9 @@ train_datafrom0_10000, test_datafrom0_10000= df0_10000.randomSplit([0.7,0.3])
 train_datafrom0_10000.describe().show()
 test_datafrom0_10000.describe().show()
 
+
+
+
 assembler= VectorAssembler(inputCols=['Prices','Reviews','RAM Specifications','Storage Specifications'], outputCol='features', handleInvalid='skip')
 output= assembler.transform(df)
 fnl_data=output.select('features','Reviews')
@@ -51,3 +54,11 @@ result_accuracy= lr_model.evaluate(test_fnl_data)
 result_accuracy.rootMeanSquaredError
 result_accuracy.r2
 fnl_data.describe().show()
+
+
+
+
+
+
+
+
