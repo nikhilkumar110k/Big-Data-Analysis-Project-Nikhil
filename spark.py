@@ -7,6 +7,7 @@ from pyspark.ml.regression import RandomForestRegressor
 from pyspark.ml.linalg import Vectors
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.classification import LogisticRegression
 
 
 spark= SparkSession.builder.appName("BDA Project").getOrCreate()
