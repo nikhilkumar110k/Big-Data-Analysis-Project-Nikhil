@@ -79,6 +79,6 @@ vectors_input_byuser = assembler1.transform(user_input)
 
 rfr_predictions0_10000= rfr_model.transform(vectors_input_byuser)
 
-rfr_predictions0_10000.select("features", "prediction").show(truncate=False)
+rfr_predictions0_10000.show(truncate=False)
 
 
