@@ -3,11 +3,11 @@ import tweepy
 from tweepy import OAuthHandler,StreamingClient,StreamResponse,streaming, OAuth2BearerHandler
 import json
 
-consumer_key=''
-consumer_secret=''
-access_token=''
-access_secret='Y'
-BEARER_TOKEN = 'AAAAAAAAAAj'  
+consumer_key='177442951139388211x'
+consumer_secret='Yg3MzKLbpXuiqgCTLrFf0'
+access_token='177442ToPu8jg9x'
+access_secret='YgWUpXuiqgCTLrFf0'
+BEARER_TOKEN = 'AAAAAANejXTi1bLg0JwIpQAj'  
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
@@ -38,6 +38,9 @@ def sendData(c_socket):
   auth=OAuthHandler(consumer_key,consumer_secret)
   auth.set_access_token(access_token,access_secret)
   listener = TweetListener(c_socket, BEARER_TOKEN)
+  existing_rules = listener.get_rules().data
+  if existing_rules:
+      listener.delete_rules([rule.id for rule in existing_rules])
   listener.add_rules(tweepy.StreamRule("Python"))
   listener.filter()
 
