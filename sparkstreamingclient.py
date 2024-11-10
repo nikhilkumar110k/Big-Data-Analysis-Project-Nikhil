@@ -1,22 +1,43 @@
-import socket
+from pyspark import SparkContext
+from pyspark.streaming import StreamingContext
+from pyspark.sql import SQLContext
+from pyspark.sql.functions import desc
+from collections import namedtuple
+from regex import split as split
+import time
+from IPython import display
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-host = '127.0.0.1'  
-port = 5555  
 
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-try:
-    client_socket.connect((host, port))
-    print("Connected to server")
+sc= SparkContext()
 
-    while True:
-        tweet = client_socket.recv(1024).decode('utf-8')
-        if tweet:
-            print(f"Received tweet: {tweet}")
-        else:
-            break  
+ssc= StreamingContext(sc,10)
+sqlcontext= SQLContext(sc)
 
-except Exception as e:
-    print(f"Error in client: {e}")
-finally:
-    client_socket.close() 
+socket_stream= ssc.socketTextStream("127.0.0.1",9999)
+lines=socket_stream.window(20)
+fields=("tags","count")
+tweet= namedtuple('tweet',fields)
+
+(lines.flatMap(lambda text: text.split( " " )).
+ filter(lambda word:word.lower().startswith("#")).
+ map(lambda word:(word.lower(),1))
+ .reduceByKey(lambda a,b: a+b))
+
+ssc.start()
+
+count=0
+
+while count<0:
+    time.sleep(3)
+    top_10= sqlcontext.sql('select tag, count from tweets: ')
+    top_10_df=top_10.toPandas()
+    display.clear_output(wait=True)
+    sns.plt.figure(figsize=(10,8))
+    sns.barplot(x="count",y="tag",data=top_10_df)
+    sns.plt.show()
+    count=count + 1
+    
+ssc.stop()
