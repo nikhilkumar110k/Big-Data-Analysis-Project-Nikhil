@@ -9,11 +9,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 
-consumer_key = 'S'
-consumer_secret = 'beQXKhQAgYz'
-access_token = '1774429x'
-access_secret = 'YgW0'
-BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAAOpwwwEAAAAIpQAj'
+consumer_key = 'S5r'
+consumer_secret = 'bz'
+access_token = '1'
+access_secret = 'YFf0'
+BEARER_TOKEN = 'AAAAAAAAAAj'
 
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -28,7 +28,7 @@ def get_tweets(keywords, tweet_limit=100):
     tweet_list = []
     
     while True:
-        if keyboard.is_pressed('q'): 
+        if keyboard.is_pressed('n'): 
             print("Exiting the program...")
             break  
 
