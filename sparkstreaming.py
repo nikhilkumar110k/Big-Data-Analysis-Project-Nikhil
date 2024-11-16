@@ -9,11 +9,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 
-consumer_key = 'SvKhuf7ZFEFgEFx1R5SUVQn5r'
-consumer_secret = 'beQXKhQAgYQWlaZrd3pGrvp9JdX4H9RqFfy8U8uJNAmAWTBzez'
-access_token = '1774429511393882112-crl3vLbYurQUTy4Qsv2yjjoPu8jg9x'
-access_secret = 'YgWUaXGDmahZV8uoIRenZVnzAw3MzKLbpXuiqgCTLrFf0'
-BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAAOpwwwEAAAAABvUinglAFPJ5889RnnyDa9m9PCU%3DLeswCkysTDRXvRpMPo7uIBgjFrUARPnXNejXTi1bLg0JwIpQAj'
+consumer_key = 'S'
+consumer_secret = 'beQXKhQAgYz'
+access_token = '1774429x'
+access_secret = 'YgW0'
+BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAAOpwwwEAAAAIpQAj'
 
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
