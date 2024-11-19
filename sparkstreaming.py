@@ -7,13 +7,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.types import StructType, StructField, StringType, TimestampType
 
 
-consumer_key = 'S5r'
-consumer_secret = 'bz'
-access_token = '1'
-access_secret = 'YFf0'
-BEARER_TOKEN = 'AAAAAAAAAAj'
+consumer_key = 'SvKhuf7ZFEFgEFx1R5SUVQn5r'
+consumer_secret = 'beQXKhQAgYQWlaZrd3pGrvp9JdX4H9RqFfy8U8uJNAmAWTBzez'
+access_token = '1774429511393882112-crl3vLbYurQUTy4Qsv2yjjoPu8jg9x'
+access_secret = 'YgWUaXGDmahZV8uoIRenZVnzAw3MzKLbpXuiqgCTLrFf0'
+BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAAOpwwwEAAAAABvUinglAFPJ5889RnnyDa9m9PCU%3DLeswCkysTDRXvRpMPo7uIBgjFrUARPnXNejXTi1bLg0JwIpQAj'
 
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -26,6 +27,13 @@ def get_tweets(keywords, tweet_limit=100):
     client = tweepy.Client(bearer_token=BEARER_TOKEN)
     
     tweet_list = []
+
+    # Define schema explicitly
+    schema = StructType([
+        StructField("tweet", StringType(), True),
+        StructField("created_at", TimestampType(), True),
+        StructField("company", StringType(), True)
+    ])
     
     while True:
         if keyboard.is_pressed('n'): 
@@ -34,10 +42,14 @@ def get_tweets(keywords, tweet_limit=100):
 
         try:
             for keyword in keywords:
-                response = client.search_recent_tweets(query=keyword, max_results=10)
+                response = client.search_recent_tweets(query=keyword, max_results=100)
                 if response.data:
                     for tweet in response.data:
-                        tweet_list.append({'tweet': tweet.text, 'created_at': tweet.created_at, 'company': keyword})
+                        tweet_list.append({
+                            'tweet': tweet.text, 
+                            'created_at': tweet.created_at, 
+                            'company': keyword
+                        })
                 
                 tweet_list = tweet_list[-tweet_limit:]
 
@@ -45,7 +57,8 @@ def get_tweets(keywords, tweet_limit=100):
                 for tweet in tweet_list:
                     print(f"- {tweet['tweet']}")
 
-                tweet_df = spark.createDataFrame(tweet_list)
+                # Create DataFrame with explicit schema
+                tweet_df = spark.createDataFrame(tweet_list, schema=schema)
                 tweet_df.show()
 
                 tweet_df = tweet_df.withColumn('date', F.to_date(tweet_df['created_at']))
