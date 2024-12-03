@@ -57,7 +57,6 @@ def get_tweets(keywords, tweet_limit=100):
                 for tweet in tweet_list:
                     print(f"- {tweet['tweet']}")
 
-                # Create DataFrame with explicit schema
                 tweet_df = spark.createDataFrame(tweet_list, schema=schema)
                 tweet_df.show()
 
