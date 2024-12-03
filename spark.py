@@ -1,29 +1,33 @@
-from pyspark.sql import SparkSession, Row
-from pyspark.sql.functions import when, col, lit, regexp_replace, split
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import when, col, regexp_replace, split
 from pyspark.ml.feature import VectorAssembler, StringIndexer, OneHotEncoder
-from pyspark.ml.regression import RandomForestRegressor
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
-from pyspark.sql.types import DoubleType
 from pyspark.ml import Pipeline
-import os 
+import xgboost as xgb
+import pandas as pd
+import numpy as np
 
-os.environ["PYSPARK_PYTHON"] = "c:/Users/hp pc/AppData/Local/Programs/Python/Python311/python.exe" 
-os.environ["PYSPARK_DRIVER_PYTHON"] = "c:/Users/hp pc/AppData/Local/Programs/Python/Python311/python.exe"  
+# Create Spark session
 spark = SparkSession.builder.appName("BDA Project").getOrCreate()
 
-df = spark.read.csv("Scrapped_Data_for_allinfo.csv", inferSchema=True, header=True)
+# Read and preprocess data
+df = spark.read.csv(r"D:\Big-Data-Analysis-Project-Nikhil\Scrapped_Data_for_allinfo.csv", inferSchema=True, header=True)
 
-df = df.withColumn("Prices", regexp_replace(col("Prices"), ",", "").cast(DoubleType()))
+# Clean up data
+df = df.withColumn("Prices", regexp_replace(col("Prices"), ",", "").cast("double"))
 df = df.na.fill(4, subset=["RAM Specifications"])
 df = df.withColumn("Reviews", when(df["Reviews"] > 5.0, df["Reviews"] - 4).otherwise(df["Reviews"]))
 df = df.dropDuplicates(["Mobile Name", "Prices", "Reviews", "RAM Specifications", "Storage Specifications"])
 
+# Handle outliers
 df = df.filter((col("Prices") > 100) & (col("Prices") < 50000))
 df = df.filter((col("Reviews") >= 0) & (col("Reviews") <= 10))
 
+# Extract brand name
 df = df.withColumn("Brand", split(col("Mobile Name"), " ").getItem(0))
 
+# Add price category
 df = df.withColumn(
     "Price_Category",
     when(df["Prices"] < 5000, 0)
@@ -31,112 +35,111 @@ df = df.withColumn(
     .otherwise(2)
 )
 
+# Filter price ranges and split data
 df0_10000 = df.filter(col("Prices") < 10000)
 train_data, test_data = df0_10000.randomSplit([0.7, 0.3], seed=42)
 
+# Create the pipeline stages
 brand_indexer = StringIndexer(
-    inputCol="Brand", 
-    outputCol="BrandIndex", 
-    handleInvalid="keep" 
+    inputCol="Brand",
+    outputCol="BrandIndex",
+    handleInvalid="skip"  # This will skip invalid labels in StringIndexer
 )
 
 brand_encoder = OneHotEncoder(
-    inputCol="BrandIndex", 
+    inputCol="BrandIndex",
     outputCol="BrandVec",
-    handleInvalid="keep" 
+    dropLast=True  # Drop the last category to avoid issues with one-hot encoding
 )
 
+# Create feature columns list
 feature_cols = ["Prices", "RAM Specifications", "Storage Specifications", "Price_Category"]
 
-
+# Create the assembler
 assembler = VectorAssembler(
     inputCols=feature_cols + ["BrandVec"],
     outputCol="features",
-    handleInvalid="keep"  
+    handleInvalid="skip"  # Handle invalid features during assembly
 )
 
-rfr = RandomForestRegressor(
-    featuresCol="features", 
-    labelCol="Reviews",
-    numTrees=100,
-    maxDepth=10
-)
-
+# Create the pipeline
 pipeline = Pipeline(stages=[
     brand_indexer,
     brand_encoder,
-    assembler,
-    rfr
+    assembler
 ])
 
-param_grid = ParamGridBuilder() \
-    .addGrid(rfr.numTrees, [50, 100]) \
-    .addGrid(rfr.maxDepth, [5, 10]) \
-    .build()
+# Fit the pipeline to the training data
+model = pipeline.fit(train_data)
 
-evaluator = RegressionEvaluator(
-    labelCol="Reviews", 
-    predictionCol="prediction", 
-    metricName="rmse"
-)
+# Transform the train and test data
+train_transformed = model.transform(train_data)
+test_transformed = model.transform(test_data)
 
-crossval = CrossValidator(
-    estimator=pipeline,
-    estimatorParamMaps=param_grid,
-    evaluator=evaluator,
-    numFolds=2,  
-    parallelism=2  
-)
+# Convert to Pandas for XGBoost
+train_pd = train_transformed.select("features", "Reviews").toPandas()
+test_pd = test_transformed.select("features", "Reviews").toPandas()
 
-print("Training model...")
-cv_model = crossval.fit(train_data)
-cv_model.bestModel.save("C:/Users/hp pc/OneDrive/Desktop/Big-Data-Analysis-Project-Nikhil/cv_model/model")
+# XGBoost expects a numpy array format
+X_train = np.array([x.toArray() for x in train_pd["features"]])
+y_train = train_pd["Reviews"].values
+X_test = np.array([x.toArray() for x in test_pd["features"]])
+y_test = test_pd["Reviews"].values
 
-print("Making predictions...")
-predictions = cv_model.transform(test_data)
+# Create DMatrix for XGBoost
+dtrain = xgb.DMatrix(X_train, label=y_train)
+dtest = xgb.DMatrix(X_test, label=y_test)
 
-rmse = evaluator.evaluate(predictions)
-r2 = RegressionEvaluator(
-    labelCol="Reviews", 
-    predictionCol="prediction", 
-    metricName="r2"
-).evaluate(predictions)
+# Define parameters for XGBoost
+params = {
+    'objective': 'reg:squarederror',
+    'max_depth': 6,
+    'eta': 0.1,
+    'eval_metric': 'rmse'
+}
 
+# Train the model
+xgb_model = xgb.train(params, dtrain, num_boost_round=100)
+
+# Make predictions
+predictions = xgb_model.predict(dtest)
+
+# Evaluate the model
+rmse = np.sqrt(((predictions - y_test) ** 2).mean())
 print(f"Root Mean Squared Error (RMSE) on test data = {rmse}")
-print(f"R^2 on test data = {r2}")
 
-if hasattr(cv_model.bestModel.stages[-1], 'featureImportances'):
-    feature_importance = cv_model.bestModel.stages[-1].featureImportances
-    print("\nFeature Importances:")
-    for i, importance in enumerate(feature_importance):
-        print(f"Feature {i}: {importance}")
-
-def predict_review(price, ram_spec, storage_spec, brand, pipeline_model):
+# Example prediction function
+def predict_review(price, ram_spec, storage_spec, brand, model):
+    # Create a single row DataFrame with the input
     input_data = spark.createDataFrame([(
-        "Sample Phone", 
-        price,          
-        0.0,         
-        ram_spec,       
-        storage_spec, 
-        brand,          
-        1 if price >= 5000 and price < 20000 else (0 if price < 5000 else 2) 
-    )], ["Mobile Name", "Prices", "Reviews", "RAM Specifications", 
+        "Sample Phone",  # Mobile Name
+        price,           # Prices
+        0.0,             # Reviews (will be predicted)
+        ram_spec,        # RAM Specifications
+        storage_spec,    # Storage Specifications
+        brand,           # Brand
+        1 if price >= 5000 and price < 20000 else (0 if price < 5000 else 2)  # Price_Category
+    )], ["Mobile Name", "Prices", "Reviews", "RAM Specifications",
          "Storage Specifications", "Brand", "Price_Category"])
-    
-    try:
-        prediction = pipeline_model.transform(input_data)
-        return prediction.select("prediction").collect()[0][0]
-    except Exception as e:
-        print(f"Error making prediction: {str(e)}")
-        return None
 
+    # Transform the input data using the same pipeline
+    transformed_input = model.transform(input_data)
+
+    # Convert to Pandas for prediction
+    input_pd = transformed_input.select("features").toPandas()
+    X_input = np.array([x.toArray() for x in input_pd["features"]])
+
+    # Make prediction with XGBoost
+    prediction = xgb_model.predict(xgb.DMatrix(X_input))
+    return prediction[0]
+
+# Example usage
 print("\nMaking sample prediction...")
 sample_prediction = predict_review(
     price=15000,
     ram_spec=6,
     storage_spec=128,
     brand="Samsung",
-    pipeline_model=cv_model.bestModel
+    model=model
 )
-if sample_prediction is not None:
-    print(f"Predicted review score: {sample_prediction:.2f}")
+print(f"Predicted review score: {sample_prediction:.2f}")
